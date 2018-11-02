@@ -1,0 +1,477 @@
+<p><br /><br /><br />LifeGame ver 1.4</p>
+<p> </p>
+<style type="text/css"><!--
+</p>
+<p>			<!-- --></p><p>		
+--></style>
+<p> </p>
+<p>
+<script type="text/javascript">// <![CDATA[
+			////////////////////////////////////// DEFAULT SETTING
+			// 初期状態でセルが生きている確率（0~1）
+			var INIT_RATE = 0.25;
+			
+			// 状態遷移の間隔（ミリ秒）
+			var TIME_LAG = 20;
+			
+			// 遷移しなくなったら自動停止
+			var AUTO_STOP = true;
+			////////////////////////////////////// DEFAULT SETTING
+			
+			// 配列
+			var ROWS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X"];
+			var COLS = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32"];
+			
+			// 停止フラグ
+			var STP_FLG = true;
+			
+			// 世代数
+			var GENERATION = 0;
+			
+			// グライダー
+			var GLIDER = false;
+			var BORN_LAG = 20;
+			
+			// 設定できる色
+			var ALIVE_COLOR = '#999999';
+			var BORN_COLOR = '#999999';
+			var DYING_COLOR = '#E0E0E0';
+			var DEAD_COLOR = '#FFFFFF';
+			
+			var CELLS = [];
+			
+			/**
+			 * ページ初期化
+			 * @returns {} 
+			*/
+			function initiate() {
+				// セルフィールドのHTMLを書き出す
+				var htmlStr = ""
+					htmlStr += "<table>";
+				for (var i=0; i<ROWS.length; i++) {
+					var row = ROWS[i];
+					htmlStr += "<tr>";
+					for (var j=0; j<COLS.length; j++) {
+						var col = COLS[j]
+						htmlStr += "<td>";
+						htmlStr += "<div name='cell' id='"
+						htmlStr += row;
+						htmlStr += col;
+						htmlStr += "' onclick='turnState(this)'></div>"
+						htmlStr += "</td>";
+					}
+					htmlStr += "</tr>";
+				}
+				htmlStr += "</table>";
+				document.getElementById('cell_field').innerHTML = htmlStr;
+				
+				// セルリストに登録、初期化
+				CELLS = document.getElementsByName('cell');
+				resetBlink();
+			}
+			
+			/**
+			 * 開始/一時停止の切替え
+			 * @returns {} 
+			 */
+			function switchBlink() {
+				if (STP_FLG) {
+					startBlink();
+				} else {
+					stopBlink();
+				}
+			}
+			
+			/**
+			 * 開始
+			 * @returns {} 
+			 */
+			function startBlink() {
+				// 動いている間は何もしない
+				if ( !STP_FLG ) { return; }
+				
+				STP_FLG = false;
+			
+				document.getElementById('sys_out').textContent = "動作中です。[一時停止]で停止します。";
+				document.getElementById('btn_switch').textContent = '一時停止';
+			
+				// 指定された間隔の半分をおいてスタート
+				setTimeout(function() {
+					_blink();
+				}, TIME_LAG/2);
+			}
+			
+			/**
+			 * 一時停止
+			 * @returns {} 
+			 */
+			function stopBlink() {
+				STP_FLG = true;
+			
+				document.getElementById('sys_out').textContent = "セルをクリックするか、[ランダム]を押下して初期状態をセットしてください。[スタート]で開始します。";
+				document.getElementById('btn_switch').textContent = 'スタート';
+			}
+			
+			/**
+			 * ランダムパターンをセット
+			 * @returns {} 
+			 */
+			function setRandom() {
+			
+				stopBlink();
+				
+				// ランダムな状態にセット
+				for (var i=0; i<CELLS.length; i++) {
+					var rdm = Math.random();
+					// INIT_RATEの確率で配置
+					if (rdm <= INIT_RATE) {
+						CELLS[i].className = 'cell_alive';
+					} else {
+						CELLS[i].className = 'cell_dead';
+					}
+				}
+			
+				GENERATION = 0;
+				document.getElementById('generation').textContent = GENERATION;
+			}
+			
+			/**
+			 * 表示をクリアして停止する
+			 * @returns {} 
+			 */
+			function resetBlink() {
+				stopBlink();
+			
+				for (var i=0; i<CELLS.length; i++) {
+					CELLS[i].className = 'cell_dead';
+				}
+				
+				GENERATION = 0;
+				document.getElementById('generation').textContent = GENERATION;
+				
+			}
+			
+			/**
+			 * クリックされたdivの状態を切り替える
+			 * @param {} cell クリックされたdiv
+			 * @returns {} 
+			 */
+			function turnState(cell) {
+				if (STP_FLG) {
+					if (cell.className == 'cell_alive' || cell.className == 'cell_born') {
+						cell.className = 'cell_dead';
+					} else {
+						cell.className = 'cell_alive';
+					}
+				}
+			}
+			
+			/**
+			 * 設定内容を反映する
+			 * @returns {} 
+			 */
+			function savePrefs() {
+				INIT_RATE = Number(document.getElementById('input_rate').value)/100;
+				TIME_LAG = document.getElementById('input_lag').value;
+				AUTO_STOP = document.getElementById('auto_stop').checked;
+				GLIDER = document.getElementById('glider').checked;
+				BORN_LAG = document.getElementById('born_lag').value;
+				
+				ALIVE_COLOR = document.getElementById('alive_color').value;
+				BORN_COLOR = document.getElementById('born_color').value;
+				DYING_COLOR = document.getElementById('dying_color').value;
+				DEAD_COLOR = document.getElementById('dead_color').value;
+				
+				// 設定された色をCSSに反映
+				for (var i=0; i<document.styleSheets.item(0).cssRules.length; i++) {
+					if (document.styleSheets.item(0).cssRules[i].selectorText == '.cell_alive') {
+						document.styleSheets.item(0).cssRules[i].style.backgroundColor = ALIVE_COLOR;
+					}
+					if (document.styleSheets.item(0).cssRules[i].selectorText == '.cell_born') {
+						document.styleSheets.item(0).cssRules[i].style.backgroundColor = BORN_COLOR;
+					}
+					if (document.styleSheets.item(0).cssRules[i].selectorText == '.cell_dying') {
+						document.styleSheets.item(0).cssRules[i].style.backgroundColor = DYING_COLOR;
+					}
+					if (document.styleSheets.item(0).cssRules[i].selectorText == '.cell_dead') {
+						document.styleSheets.item(0).cssRules[i].style.backgroundColor = DEAD_COLOR;
+					}
+				}
+			
+				closePrefs();
+			}
+			
+			/**
+			 * 設定画面を開く
+			 * @returns {} 
+			 */
+			function openPrefs() {
+				document.getElementById('input_rate').value = INIT_RATE*100;
+				document.getElementById('input_lag').value = TIME_LAG;
+				document.getElementById('auto_stop').checked = AUTO_STOP;
+				document.getElementById('glider').checked = GLIDER;
+				document.getElementById('born_lag').value = BORN_LAG;
+				document.getElementById('alive_color').value = ALIVE_COLOR;
+				document.getElementById('born_color').value = BORN_COLOR;
+				document.getElementById('dying_color').value = DYING_COLOR;
+				document.getElementById('dead_color').value = DEAD_COLOR;
+			
+				document.getElementById('prefs').style.display = 'block';
+			}
+			
+			/**
+			 * 設定画面内、グライダーのチェックボックスクリック時の処理
+			 * @returns {} 
+			 */
+			 function switchGlider(e) {
+				document.getElementById("born_lag").disabled = !e.checked;
+			}
+			
+			
+			/**
+			 * 設定画面を閉じる
+			 * @returns {} 
+			 */
+			function closePrefs() {
+				document.getElementById('prefs').style.display = 'none';
+			}
+			
+			/**
+			 * セルの状態を切り替える
+			 * 切り替えた後、指定された間隔をおいて自分を再度呼び出す
+			 * @returns {} 
+			 */
+			function _blink() {
+				
+				if (STP_FLG) { return; }
+				
+				// グライダーがONであれば、定期的にグライダーを生成する
+				if (GLIDER) {
+					if (GENERATION%BORN_LAG == 0) {
+						document.getElementById("N30").className = 'cell_born';
+						document.getElementById("N31").className = 'cell_born';
+						document.getElementById("N32").className = 'cell_born';
+						document.getElementById("O30").className = 'cell_born';
+						document.getElementById("P31").className = 'cell_born';
+					}
+				}
+				
+				// 各セルの次の状態を導出
+				var nextState = {};
+				for (var i=0; i<CELLS.length; i++) {
+					nextState = _setState(CELLS[i], nextState);
+				}
+			
+				// 切替実行
+				_turnAllState(nextState);
+				
+				// 指定された間隔をおいて、また切り替える
+				setTimeout(function() {
+					_blink();
+				}, TIME_LAG);
+			
+			}
+			
+			/**
+			 * 対象セルの周囲の状況をチェックし、対象セルの次の状態を決定する
+			 * @param {} cell
+			 * @param {} nextState 全セルの次の状態の連想配列
+			 * @returns {} 
+			 */
+			function _setState(cell, nextState) {
+			
+				// 周囲8セルのうち、生きてるセルの数
+				var aroundState = _getAroundState(cell);
+				
+				// 生きてるセルがいくつあるかによって次の状態が決まる
+				if (aroundState < 2) {
+					// さみしいと死ぬ
+					nextState[cell.id] = 0;
+				} else if (aroundState == 2) {
+					// 現状維持
+					nextState[cell.id] = _getState(cell.id);
+				} else if (aroundState == 3) {
+					// うまれる
+					nextState[cell.id] = 1;
+				} else if (aroundState > 3) {
+					// 混んでると死ぬ
+					nextState[cell.id] = 0;
+				}
+				
+				return nextState;
+			}
+			
+			/**
+			 * セルを受け取って、周囲の8セルのうち生きているセルの数（周囲のセルのstate値の合計）を返す
+			 * ※テーブルの端のセルであっても循環参照するため、周囲のセルは常に8個
+			 * @param {} cell
+			 * @returns {} aroundState 生きているセルの数
+			 */
+			function _getAroundState(cell){
+				// 対象セルの縦横のインデックス
+				var rowIdx = ROWS.indexOf(cell.id[0]); // 1文字目（A~X）
+				var colIdx = COLS.indexOf((cell.id[1]+cell.id[2])); // 2,3文字目（01~32）
+				
+				var aroundState= 0;
+			
+				var aroundCol;
+				var aroundRow;
+				
+				// 八方のセルの状態をチェック
+				// 左上　：　一つ前の列、一つ前の行
+				aroundCol = _getPrevId(COLS, colIdx);
+				aroundRow = _getPrevId(ROWS, rowIdx);
+				aroundState += _getState(aroundRow+aroundCol);
+				
+				// 上 : 同じ列、一つ前の行
+				aroundCol = COLS[colIdx];
+				aroundRow = _getPrevId(ROWS, rowIdx);
+				aroundState += _getState(aroundRow+aroundCol);
+			
+				// 右上　：　一つ次の列、一つ前の行
+				aroundCol = _getNextId(COLS, colIdx);
+				aroundRow = _getPrevId(ROWS, rowIdx);
+				aroundState += _getState(aroundRow+aroundCol);
+			
+				// 左 ： 一つ前の列、同じ行
+				aroundCol = _getPrevId(COLS, colIdx);
+				aroundRow = ROWS[rowIdx];
+				aroundState += _getState(aroundRow+aroundCol);
+				
+				// 右 ： 一つ次の列、同じ行
+				aroundCol = _getNextId(COLS, colIdx);
+				aroundRow = ROWS[rowIdx];
+				aroundState += _getState(aroundRow+aroundCol);
+				
+				// 左下 : 一つ前の列、一つ次の行
+				aroundCol = _getPrevId(COLS, colIdx);
+				aroundRow = _getNextId(ROWS, rowIdx);
+				aroundState += _getState(aroundRow+aroundCol);
+			
+				// 下 : 同じ列、一つ次の行
+				aroundCol = COLS[colIdx];
+				aroundRow = _getNextId(ROWS, rowIdx);
+				aroundState += _getState(aroundRow+aroundCol);
+			
+				// 右下 : 一つ次の列、一つ次の行
+				aroundCol = _getNextId(COLS, colIdx);
+				aroundRow = _getNextId(ROWS, rowIdx);
+				aroundState += _getState(aroundRow+aroundCol);
+			
+				return aroundState;
+			}
+			
+			/**
+			 * 配列中の、渡されたインデックスの一つ前の要素を返す
+			 * 先頭だった場合は末尾の要素を返す
+			 * 
+			 * @param {} array
+			 * @param {} idx
+			 * @returns {} 
+			 */
+			function _getPrevId(array, idx) {
+				return _shift(array, idx, -1);
+			}
+			
+			/**
+			 * 配列中の、渡されたインデックスの一つ次の要素を返す
+			 * 末尾だった場合は先頭の要素を返す
+			 * @param {} array
+			 * @param {} idx
+			 * @returns {} 
+			 */
+			function _getNextId(array, idx) {
+				return _shift(array, idx, 1);
+			}
+			
+			/**
+			 * 配列のうち、指定のインデックスから指定の量だけずらした要素を返す
+			 * 循環参照する（末尾+1は先頭の要素）
+			 * 
+			 * @param {} array 配列
+			 * @param {} idx 指定のインデックス
+			 * @param {} amount ずらす量（-1なら一つ前）
+			 * @returns {} 
+			 */
+			function _shift(array, idx, amount) {
+				var resltIdx = idx + amount;
+				
+				if (resltIdx < 0) {
+					resltIdx = array.length-1;
+				} else if (resltIdx >= array.length) {
+					resltIdx = 0;
+				}
+				
+				return array[resltIdx];
+			}
+			
+			
+			/**
+			 * セルの表示状態によって1か0を返す
+			 * @param {} セルのID
+			 * @returns {} 
+			 */
+			function _getState(id) {
+				var cell = document.getElementById(id);
+				if (cell.className == 'cell_alive' || cell.className == 'cell_born') {
+					return 1;
+				} else {
+					return 0;
+				}
+			}
+			
+			/**
+			 * 次の状態の指定を受けとり、画面に反映する
+			 * @param {} nextState 全セル分の次の状態（連想配列）
+			 * @returns {} 
+			 */
+			function _turnAllState(nextState) {
+				
+				var change_flg = false;
+			
+				for (var i=0; i<CELLS.length; i++) {
+					if (nextState[CELLS[i].id] == 1) {
+						if (CELLS[i].className == 'cell_born') {
+							CELLS[i].className = 'cell_alive';
+							change_flg = true;
+						} else if (CELLS[i].className == 'cell_dying' || CELLS[i].className == 'cell_dead') {
+							CELLS[i].className = 'cell_born';
+							change_flg = true;
+						}
+					} else if (nextState[CELLS[i].id] == 0){
+						if (CELLS[i].className == 'cell_alive' || CELLS[i].className == 'cell_born') {
+							CELLS[i].className = 'cell_dying';
+							change_flg = true;
+						} else if (CELLS[i].className == 'cell_dying') {
+							CELLS[i].className = 'cell_dead';
+							change_flg = true;
+						}
+					} else {
+						// DEBUG
+						window.alert("_turnAllState() no state is set! cell: "+ CELLS[i].id);
+					}
+				}
+				
+				// 前回から動いていない場合、自動停止対象となる
+				if (AUTO_STOP && (!change_flg)) {
+					stopBlink();
+					document.getElementById('sys_out').textContent = "パターンはこれ以上変化しません。セルをクリックするか、[ランダム]を押下して初期状態をセットしてください。[スタート]で開始します。";
+				}
+				
+				// 世代数インクリメント
+				GENERATION++;
+				document.getElementById('generation').textContent = GENERATION;
+			}
+		
+// ]]></script>
+<br /> <br /> <br /><br /></p>
+<p> </p>
+<p><button id="btn_switch" type="button">スタート</button><br /> <button id="btn_rnd" type="button">ランダム</button><br /> <button id="btn_clr" type="button">クリア</button><br /> <button id="btn_pref" type="button">設定...</button><br /> <br /><br /> 現在 <span id="generation"></span> 世代目<br /><br /> <br /><br /></p>
+<p> </p>
+<div id="cell_field"> </div>
+<p> </p>
+<p id="sys_out">セルをクリックするか、[ランダム]を押下して初期状態をセットしてください。[スタート]で開始します。</p>
+<p> </p>
+<div id="prefs"><br /> 切替間隔（ミリ秒）　：　<input id="input_lag" style="width: 50px;" type="number" /><br /><br /> [ランダム]でセルに色がつく確率（％）　：　<input id="input_rate" style="width: 50px;" type="number" /><br /><br /> これ以上動かない時、自動で停止する <input id="auto_stop" type="checkbox" /><br /><br /> 生きているセルの色　：　<input id="alive_color" type="color" /><br /><br /> 新しく生まれたセルの色　：　<input id="born_color" type="color" /><br /><br /> 新しく死んだセルの色　：　<input id="dying_color" type="color" /><br /><br /> 死んでいるセルの色　：　<input id="dead_color" type="color" /><br /><br /> <br /><br /> グライダー自動生成 <input id="glider" type="checkbox" /><br /><br /> グライダー自動生成の間隔（世代）　：　<input id="born_lag" style="width: 50px;" disabled="disabled" type="number" /><br /><br /> <br /><br /><br /> 注：保存された設定は、ページ再読み込みで破棄されます。<br /><br />
+<p style="text-align: right;"><br /> <input type="button" value="保存" /><br /> <input type="button" value="キャンセル" /></p>
+</div>

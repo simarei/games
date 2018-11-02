@@ -1,0 +1,390 @@
+<p><br /><br /><br />MINE 2</p>
+<p> </p>
+<style type="text/css"><!--
+</p>
+<p>			<!-- --></p><p>		
+--></style>
+<p> </p>
+<p>
+<script type="text/javascript">// <![CDATA[
+			// 設定初期値
+			var INIT_NUM = 100;
+			
+			// グローバル変数
+			var ROWS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X"];
+			var COLS = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32"];
+			
+			var END_FLG = false;
+			var REMAIN = 0;
+			
+			/*
+			 * セルの種類
+			 * cell_buried			オープン前
+			 * cell_flagged			オープン前：地雷があるとチェックされたセル
+			 *
+			 * cell_none			オープン後：何もないセル
+			 * cell_num				オープン後：数字のあるセル
+			 * cell_mine			オープン後：地雷のあるセル（ゲームオーバー時に表示されるセル）
+			 * cell_ex				オープン後：地雷のあるセル（クリックで開いてしまったセル）
+			 * 
+			 */
+			
+			/**
+			 * ページ初期化
+			 * @returns {} 
+			*/
+			function initiate() {
+				// セルフィールドのHTMLを書き出す
+				var htmlStr = ""
+					htmlStr += "<table>";
+				for (var i=0; i<ROWS.length; i++) {
+					var row = ROWS[i];
+					htmlStr += "<tr>";
+					for (var j=0; j<COLS.length; j++) {
+						var col = COLS[j]
+						htmlStr += "<td>";
+						htmlStr += "<div name='cell' id='"
+						htmlStr += row;
+						htmlStr += col;
+						htmlStr += "' onclick='openCell(this)' onContextMenu='setFlag(this);return false;'></div>"
+						htmlStr += "</td>";
+					}
+					htmlStr += "</tr>";
+				}
+				htmlStr += "</table>";
+				document.getElementById('cell_field').innerHTML = htmlStr;
+				
+				// セルリストに登録、初期化
+				CELLS = document.getElementsByName('cell');
+				initCells();
+			}
+			
+			
+			/**
+			 * セルの中身をセットする
+			 * @returns {} 
+			 */
+			function initCells() {
+			
+				REMAIN = CELLS.length;
+				
+				// 基本は空
+				for (var i=0; i<CELLS.length; i++) {
+					CELLS[i].value = "";
+					CELLS[i].textContent = "";
+					CELLS[i].className = 'cell_buried';
+				}
+			
+				// 地雷
+				// 設定された数だけランダムに配置する
+				var orgList = new Array();
+				for (var i=0; i<CELLS.length; i++) {
+					orgList.push(CELLS[i]);
+				}
+				var rnd = 0;
+				var len = (CELLS.length > INIT_NUM ? INIT_NUM : CELLS.length);
+				for (var i=0; i<len; i++) {
+					rnd = Math.floor(Math.random() * (orgList.length-i));
+					
+					document.getElementById(orgList[rnd].id).value = 'm';
+					orgList.splice(rnd, 1);
+				} 
+				REMAIN -= len;
+					
+				// 数字
+				// 自分が地雷でなければ、自分の周囲の地雷数をチェックする
+				for (var i=0; i<CELLS.length; i++) {
+				
+					if (CELLS[i].value == 'm') {
+						continue;
+					}
+				
+					var arounds = _getArounds(CELLS[i]);
+					
+					// 周囲のセルの状態合計
+					var aroundState = 0;
+					for (var key in arounds) {
+						aroundState += _getState(arounds[key]);
+					}
+					
+					if (aroundState != 0) {
+						// 値はvalueに格納
+						CELLS[i].value = aroundState;
+					}
+				}
+				
+				_uploadRemain();
+			}
+			
+			/**
+			 * リセット
+			 */
+			function reset() {
+				END_FLG = false;
+				initCells();
+			}
+			
+			/**
+			 * セルを開く
+			 * @param {} cell
+			 * @returns {} 
+			 */
+			function openCell(cell) {
+				// 既に開いているセルは無視
+				if (cell.className != 'cell_buried') { return; }
+			
+				// 空セル
+				if (cell.value == '') {
+					cell.className = 'cell_none';
+					if (!END_FLG) {
+						_openArounds(cell);
+					}
+					REMAIN--;
+				}
+				// 地雷セル
+				else if (cell.value == 'm') {
+					// 爆発済みかどうかで変わる
+					if (END_FLG) {
+						cell.className = 'cell_mine';
+					} else {
+						cell.className = 'cell_ex';
+						_explosion();
+					}
+				}
+				// 数字セル
+				else {
+					cell.className = 'cell_num';
+					cell.textContent = cell.value;
+					REMAIN--;
+				}
+				
+				_uploadRemain();
+			}
+			
+			/**
+			 * セルにフラグを立てて保護する
+			 * 保護されたセルであればフラグを解除する
+			 * @param {} cell
+			 * @returns {} 
+			 */
+			function setFlag(cell) {
+				if (END_FLG) { return; }
+				
+				if (cell.className == 'cell_buried') {
+					cell.className = 'cell_flagged';
+					cell.textContent = '×';
+				} else if (cell.className == 'cell_flagged') {
+					cell.className = 'cell_buried';
+					cell.textContent = '';
+				}
+			}
+			
+			function savePrefs() {
+				INIT_NUM = Number(document.getElementById('input_num').value);
+				closePrefs();
+			}
+			
+			function openPrefs() {
+				document.getElementById('input_num').value = INIT_NUM;
+			
+				document.getElementById('prefs').style.display = 'block';
+			}
+			
+			function closePrefs() {
+				document.getElementById('prefs').style.display = 'none';
+			}
+			
+			function closeCong() {
+				document.getElementById('cong').style.display = 'none';
+			}
+			
+			/**
+			 * 全て開いて操作不可能にする
+			 * @returns {} 
+			 */
+			function _explosion() {
+				END_FLG = true;
+			
+				for (var i=0; i<CELLS.length; i++) {
+					openCell(CELLS[i]);
+				}
+			}
+			
+			/**
+			 * 周囲のセルを開く
+			 */
+			function _openArounds(cell) {
+				var arounds = _getArounds(cell);
+				
+				for (var key in arounds) {
+					if (arounds[key].value == 'm') { continue; }
+					openCell(arounds[key]);
+				}
+			}
+			
+			/**
+			 * セルを受け取って周囲8方向のセルオブジェクトを返す
+			 * 循環参照しない（フィールドの4隅のセルであれば、周囲のセルは3つしかない）
+			 * @param {} cell
+			 * @returns {} 
+			 */
+			function _getArounds(cell){
+				// 対象セル
+				var rowIdx = ROWS.indexOf(cell.id[0]);
+				var colIdx = COLS.indexOf((cell.id[1]+cell.id[2]));
+				
+				// 周囲のセル
+				var arounds = {};
+			
+				// チェック処理中で使う変数	
+				var aroundCol;
+				var aroundRow;
+				
+				// 八方のセルを取得
+			
+				// 左上　：　一つ前の列、一つ前の行
+				aroundCol = _getPrevId(COLS, colIdx);
+				aroundRow = _getPrevId(ROWS, rowIdx);
+				if (aroundCol && aroundRow) {
+					arounds.leftUpperCell = document.getElementById(aroundRow+aroundCol);
+				}
+				
+				// 上 : 同じ列、一つ前の行
+				aroundCol = COLS[colIdx];
+				aroundRow = _getPrevId(ROWS, rowIdx);
+				if (aroundCol && aroundRow) {
+					arounds.upperCell = document.getElementById(aroundRow+aroundCol);
+				}
+				
+				// 右上　：　一つ次の列、一つ前の行
+				aroundCol = _getNextId(COLS, colIdx);
+				aroundRow = _getPrevId(ROWS, rowIdx);
+				if (aroundCol && aroundRow) {
+					arounds.rightUpperCell = document.getElementById(aroundRow+aroundCol);
+				}
+			
+				// 左 ： 一つ前の列、同じ行
+				aroundCol = _getPrevId(COLS, colIdx);
+				aroundRow = ROWS[rowIdx];
+				if (aroundCol && aroundRow) {
+					arounds.leftCell = document.getElementById(aroundRow+aroundCol);
+				}
+				
+				// 右 ： 一つ次の列、同じ行
+				aroundCol = _getNextId(COLS, colIdx);
+				aroundRow = ROWS[rowIdx];
+				if (aroundCol && aroundRow) {
+					arounds.rightCell = document.getElementById(aroundRow+aroundCol);
+				}
+				
+				// 左下 : 一つ前の列、一つ次の行
+				aroundCol = _getPrevId(COLS, colIdx);
+				aroundRow = _getNextId(ROWS, rowIdx);
+				if (aroundCol && aroundRow) {
+					arounds.leftLowerCell = document.getElementById(aroundRow+aroundCol);
+				}
+				
+				// 下 : 同じ列、一つ次の行
+				aroundCol = COLS[colIdx];
+				aroundRow = _getNextId(ROWS, rowIdx);
+				if (aroundCol && aroundRow) {
+					arounds.lowerCell = document.getElementById(aroundRow+aroundCol);
+				}
+			
+				// 右下 : 一つ次の列、一つ次の行
+				aroundCol = _getNextId(COLS, colIdx);
+				aroundRow = _getNextId(ROWS, rowIdx);
+				if (aroundCol && aroundRow) {
+					arounds.rightLowerCell = document.getElementById(aroundRow+aroundCol);
+				}
+			
+				return arounds;
+				
+			}
+			
+			/**
+			 * 配列中の、渡されたインデックスの一つ前の要素を返す
+			 * 要素がなければNULLを返す
+			 * 
+			 * @param {} array
+			 * @param {} idx
+			 * @returns {} 
+			 */
+			function _getPrevId(array, idx) {
+				return _shift(array, idx, -1);
+			}
+			
+			/**
+			 * 配列中の、渡されたインデックスの一つ次の要素を返す
+			 * 要素がなければNULLを返す
+			 * @param {} array
+			 * @param {} idx
+			 * @returns {} 
+			 */
+			function _getNextId(array, idx) {
+				return _shift(array, idx, 1);
+			}
+			
+			/**
+			 * 配列のうち、指定のインデックスから指定の量だけずらした要素を返す
+			 * 循環参照する（末尾+1は先頭の要素）
+			 * 
+			 * @param {} array 配列
+			 * @param {} idx 指定のインデックス
+			 * @param {} amount ずらす量（-1なら一つ前）
+			 * @returns {} 
+			 */
+			function _shift(array, idx, amount) {
+				var resltIdx = idx + amount;
+				
+				if (resltIdx < 0 || resltIdx >= array.length) {
+					return null;
+				}
+				
+				return array[resltIdx];
+			}
+			
+			 /**
+			 * セルの状態によって1か0を返す
+			 * @param {} cell
+			 * @returns {} 
+			 */
+			function _getState(cell) {
+				if (cell.value == 'm') {
+					return 1;
+				} else {
+					return 0;
+				}
+			}
+			
+			/**
+			 * 残りセル数を表示する
+			 * ゲームオーバーでなく、残りセル数が0であればクリア
+			 * @returns {} 
+			 */
+			function _uploadRemain() {
+				if (END_FLG) { return; }
+				
+				document.getElementById('monitor').textContent = REMAIN;
+				
+				if (REMAIN == 0) {
+					END_FLG = true;
+					document.getElementById('cong').style.display = 'block';		
+				}
+			}
+		
+// ]]></script>
+<br /> </p>
+<p> </p>
+<p><button type="button">リセット</button><br /> <button type="button">設定...</button><br /> 　残り <span id="monitor">000</span> セル<br /> <br /><br /> <br /><br /></p>
+<p> </p>
+<div id="cell_field"> </div>
+<p> </p>
+<div id="prefs"><br /> <br /><br /> <br /><br /> 地雷の数　：<br /><br /> 　<input id="input_num" type="number" /> / 768マス<br /> <br /><br /> <br /><br /> 注：保存された設定は、[リセット]押下で反映されます。ページ再読み込みを行うと破棄されます。<br /> <br /><br />
+<p style="text-align: right;"><br /> <input type="button" value="保存" /><br /> <input type="button" value="キャンセル" /></p>
+</div>
+<p> </p>
+<div id="cong"><br /> <br /><br /> クリア！<br /> <br /><br />
+<p style="text-align: right;"><br /> <input type="button" value="OK" /></p>
+</div>
+<p> </p>

@@ -1,12 +1,80 @@
-<p><br /><br /><br />MINE 2</p>
-<p> </p>
-<style type="text/css"><!--
-</p>
-<p>			<!-- --></p><p>		
---></style>
-<p> </p>
-<p>
-<script type="text/javascript">// <![CDATA[
+<!DOCTYPE=html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<title>MINE 2</title>
+		<!-- css -->
+		<style type="text/css">
+			<!--
+			
+				body {
+					background-color: #FFFFFF;
+					font-size: 11px;
+					cursor : default;
+				}
+				div {
+					background-color: #FFFFFF;
+					width: 12px;
+					height: 12px;
+				}
+				div#prefs{
+					border:1px solid #666666;
+					width:300px;
+					height:180px;
+					padding:10px;
+					display:none;
+					background-color: #D0D0D0;
+					position:absolute;
+					top:0px;
+					right:0px;
+				}
+				div#cong{
+					border:1px solid #666666;
+					width:300px;
+					height:180px;
+					padding:10px;
+					display:none;
+					background-color: #FFFFFF;
+					position:absolute;
+					top:20%;
+					left:20%;
+					font-size : 20px;
+				}
+				.cell_mine {
+					background-color: #000000;
+				}
+				.cell_num {
+					background-color: #D0D0D0;
+					color : #0000FF;
+					font-size : 10px;
+					text-align: center;
+				}
+				.cell_none {
+					background-color: #D0D0D0;
+				}
+				.cell_ex {
+					background-color: #FF0000;
+				}
+				table {
+					border-collapse:collapse;
+				}
+				td {
+					width: 12px;
+					height: 12px;
+					margin: 0px;
+					padding: 0px;
+					border: 1px solid #D0D0D0;
+				}
+				button {
+					background-color: #FFFFFF;
+					color : #666666;
+					border-style: 1px solid #666666;
+				}
+			-->
+		</style>
+		<!-- css -->
+		<script type='text/javascript'>
+		<!-- 
 			// 設定初期値
 			var INIT_NUM = 100;
 			
@@ -372,19 +440,45 @@
 					document.getElementById('cong').style.display = 'block';		
 				}
 			}
-		
-// ]]></script>
-<br /> </p>
-<p> </p>
-<p><button type="button">リセット</button><br /> <button type="button">設定...</button><br /> 　残り <span id="monitor">000</span> セル<br /> <br /><br /> <br /><br /></p>
-<p> </p>
-<div id="cell_field"> </div>
-<p> </p>
-<div id="prefs"><br /> <br /><br /> <br /><br /> 地雷の数　：<br /><br /> 　<input id="input_num" type="number" /> / 768マス<br /> <br /><br /> <br /><br /> 注：保存された設定は、[リセット]押下で反映されます。ページ再読み込みを行うと破棄されます。<br /> <br /><br />
-<p style="text-align: right;"><br /> <input type="button" value="保存" /><br /> <input type="button" value="キャンセル" /></p>
-</div>
-<p> </p>
-<div id="cong"><br /> <br /><br /> クリア！<br /> <br /><br />
-<p style="text-align: right;"><br /> <input type="button" value="OK" /></p>
-</div>
-<p> </p>
+		// -->
+		</script>
+ 	</head>
+	<body onLoad='initiate();'>
+	<!-- control buttons -->
+	<button type='button' onclick='reset();'>リセット</button>
+	<button type='button' onclick='openPrefs();'>設定...</button>
+	　残り  <span id='monitor' >000</span> セル
+	<!-- control buttons -->
+	<br>
+	<br>
+	<center>
+		<div id="cell_field"> </div>
+	</center>
+	<!-- preference -->
+	<div id='prefs'>
+		<br>
+		<br>
+		地雷の数　：<br>
+		　<input type='number' id='input_num'> / 768マス
+		<br>
+		<br>
+		注：保存された設定は、[リセット]押下で反映されます。ページ再読み込みを行うと破棄されます。
+		<br>
+		<p style='text-align:right;'>
+		<input type=button value='保存' onclick='savePrefs();'>
+		<input type=button value='キャンセル' onclick='closePrefs();'>
+		</p>
+	</div>	
+	<!-- preference -->
+	<!-- congratulations -->
+	<div id='cong'>
+		<br>
+		クリア！
+		<br>
+		<p style='text-align:right;'>
+		<input type=button value='OK' onclick='closeCong();'>
+		</p>
+	</div>	
+	<!-- congratulations -->
+	</body>
+</html>

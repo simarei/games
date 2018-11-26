@@ -1,12 +1,69 @@
-<p><br /><br /><br />LifeGame ver 1.4</p>
-<p> </p>
-<style type="text/css"><!--
-</p>
-<p>			<!-- --></p><p>		
---></style>
-<p> </p>
-<p>
-<script type="text/javascript">// <![CDATA[
+<!DOCTYPE=html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<title>LifeGame 3</title>
+		<!-- css -->
+		<style type="text/css">
+			<!--
+				body {
+					background-color: #FFFFFF;
+					font-size: 11px;
+					width: 320px;
+				}
+				div {
+					width: 5px;
+					height: 5px;
+				}
+				div#prefs{
+					border:1px solid #666666;
+					width:90%;
+					height:90%;
+					padding:10px;
+					display:none;
+					background-color: #D0D0D0;
+					position:absolute;
+					top:0px;
+					left:0px;
+				}
+				.cell_born {
+					background-color: #999999;
+				}
+				.cell_alive {
+					background-color: #999999;
+				}
+				.cell_dying {
+					background-color: #E0E0E0;
+				}
+				.cell_dead {
+					background-color: #FFFFFF;
+				}
+				table {
+					border-collapse:collapse;
+				}
+				td {
+					width: 5px;
+					height: 5px;
+					margin: 0px;
+					padding: 0px;
+					border: 1px solid #D0D0D0;
+				}
+				button.active {
+					background-color: #CC6666;
+					color : #FFFFFF;
+					border-style: 1px solid #FF6666;
+				}
+				button {
+					background-color: #FFFFFF;
+					color : #666666;
+					border-style: 1px solid #666666;
+				}
+			-->
+		</style>
+		<!-- css -->
+		
+		<!-- JavaScript -->
+		<script type='text/javascript'>
 			////////////////////////////////////// DEFAULT SETTING
 			// 初期状態でセルが生きている確率（0~1）
 			var INIT_RATE = 0.25;
@@ -67,6 +124,10 @@
 				
 				// セルリストに登録、初期化
 				CELLS = document.getElementsByName('cell');
+				
+				// 初期メッセージの表示
+				document.getElementById("sys_out").textContent = "セルをクリックするか、[ランダム]を押下して初期状態をセットしてください。[スタート]で開始します。"
+				
 				resetBlink();
 			}
 			
@@ -153,7 +214,7 @@
 			
 			/**
 			 * クリックされたdivの状態を切り替える
-			 * @param {} cell クリックされたdiv
+			 * @param {} cell
 			 * @returns {} 
 			 */
 			function turnState(cell) {
@@ -462,16 +523,60 @@
 				GENERATION++;
 				document.getElementById('generation').textContent = GENERATION;
 			}
-		
-// ]]></script>
-<br /> <br /> <br /><br /></p>
-<p> </p>
-<p><button id="btn_switch" type="button">スタート</button><br /> <button id="btn_rnd" type="button">ランダム</button><br /> <button id="btn_clr" type="button">クリア</button><br /> <button id="btn_pref" type="button">設定...</button><br /> <br /><br /> 現在 <span id="generation"></span> 世代目<br /><br /> <br /><br /></p>
-<p> </p>
-<div id="cell_field"> </div>
-<p> </p>
-<p id="sys_out">セルをクリックするか、[ランダム]を押下して初期状態をセットしてください。[スタート]で開始します。</p>
-<p> </p>
-<div id="prefs"><br /> 切替間隔（ミリ秒）　：　<input id="input_lag" style="width: 50px;" type="number" /><br /><br /> [ランダム]でセルに色がつく確率（％）　：　<input id="input_rate" style="width: 50px;" type="number" /><br /><br /> これ以上動かない時、自動で停止する <input id="auto_stop" type="checkbox" /><br /><br /> 生きているセルの色　：　<input id="alive_color" type="color" /><br /><br /> 新しく生まれたセルの色　：　<input id="born_color" type="color" /><br /><br /> 新しく死んだセルの色　：　<input id="dying_color" type="color" /><br /><br /> 死んでいるセルの色　：　<input id="dead_color" type="color" /><br /><br /> <br /><br /> グライダー自動生成 <input id="glider" type="checkbox" /><br /><br /> グライダー自動生成の間隔（世代）　：　<input id="born_lag" style="width: 50px;" disabled="disabled" type="number" /><br /><br /> <br /><br /><br /> 注：保存された設定は、ページ再読み込みで破棄されます。<br /><br />
-<p style="text-align: right;"><br /> <input type="button" value="保存" /><br /> <input type="button" value="キャンセル" /></p>
-</div>
+		</script>
+		<!-- JavaScript -->
+
+ 	</head>
+
+	<body onLoad='initiate();'>
+	<!-- control buttons -->
+	<!-- 
+	<button type='button' id='btn_start' class='active' onclick='startBlink();'>スタート</button>
+	<button type='button' id='btn_stop' onclick='stopBlink();'>一時停止</button>
+	 -->
+	<button type='button' id='btn_switch' onclick='switchBlink();'>スタート</button>
+	<button type='button' id='btn_rnd' onclick='setRandom();'>ランダム</button>
+	<button type='button' id='btn_clr' onclick='resetBlink();'>クリア</button>
+	<button type='button' id='btn_pref' onclick='openPrefs();'>設定...</button>
+	<br>
+	現在 <span id='generation'>0</span> 世代目
+	<!-- control buttons -->
+	<br>
+	<br>
+	<center>
+		<div id='cell_field'></div>
+		<p id='sys_out' style='background-color: #D0D0D0;width:90%;text-align:left;'></p>
+	</center>
+	<!-- preference -->
+	<div id='prefs'>
+		切替間隔（ミリ秒）　：　<input type='number' id='input_lag' style='width:50px;'>
+		<br>
+		[ランダム]でセルに色がつく確率（％）　：　<input type='number' id='input_rate' style='width:50px;'>
+		<br>
+		これ以上動かない時、自動で停止する <input type='checkbox' id='auto_stop'>
+		<br>
+		生きているセルの色　：　<input type='color' id='alive_color'>
+		<br>
+		新しく生まれたセルの色　：　<input type='color' id='born_color'>
+		<br>
+		新しく死んだセルの色　：　<input type='color' id='dying_color'>
+		<br>
+		死んでいるセルの色　：　<input type='color' id='dead_color'>
+		<br>
+		<br>
+		グライダー自動生成 <input type='checkbox' id='glider' onclick='document.getElementById("born_lag").disabled = !this.checked;'>
+		<br>
+		グライダー自動生成の間隔（世代）　：　<input type='number' id='born_lag' style='width:50px;' disabled='true'>
+		<br>
+		<br>
+		<br>
+		注：保存された設定は、ページ再読み込みで破棄されます。
+		<br>
+		<p style='text-align:right;'>
+		<input type=button value='保存' onclick='savePrefs();'>
+		<input type=button value='キャンセル' onclick='closePrefs();'>
+		</p>
+	</div>	
+	<!-- preference -->
+	</body>
+</html>
